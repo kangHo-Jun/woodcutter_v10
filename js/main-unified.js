@@ -559,8 +559,8 @@ class WoodcutterApp {
 
             // 스왑 후 치수 기준 판재 초과 체크 (길이/폭 기준)
             const oversized = items.filter(item =>
-                Math.max(item.width, item.height) > boardH ||
-                Math.min(item.width, item.height) > boardW
+                Math.max(item.width, item.height) > Math.max(this.state.boardSpec.width, this.state.boardSpec.height) ||
+                Math.min(item.width, item.height) > Math.min(boardW, boardH)
             );
             if (oversized.length > 0) {
                 calculateBtn.disabled = false;
