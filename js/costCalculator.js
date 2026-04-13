@@ -35,7 +35,7 @@ class CostCalculator {
 
         // 총 재단비 = 조건 충족 판재는 원판당 고정 단가, 그 외는 기존 컷당 단가 유지
         const totalCuttingCost = bins.reduce((sum, bin) => {
-            const fixedPrice = this.getLongSidePanelFixedPrice(bin);
+            const fixedPrice = this.getLongSidePanelFixedPrice(bin, settings);
             if (fixedPrice > 0) {
                 return sum + fixedPrice;
             }
@@ -137,7 +137,7 @@ class CostCalculator {
         return 1500; // 기본값
     }
 
-    static getLongSidePanelFixedPrice(bin) {
+    static getLongSidePanelFixedPrice(bin, settings) {
         if (!bin || !Array.isArray(bin.cutDetails) || bin.cutDetails.length === 0) {
             return 0;
         }
@@ -170,17 +170,20 @@ class CostCalculator {
         const count100down = qualifyingWidths.filter(width => width < 100).length;
         const useUnder100Price = count100down > count100up;
         const thickness = this.getBoardThickness();
-        const cutCost = (bin.cuttingCount || 0) * this.getCutPriceByThickness(thickness);
+        const cutCost = (bin.cuttingCount || 0) * settings.cutPrice;
         let fixedPrice = 0;
 
+        // settings에서 쭉절단 단가 가져오기
+        const longPrices = settings.longSidePrices;
+        
         if (thickness <= 12) {
-            fixedPrice = useUnder100Price ? 7000 : 5000;
+            fixedPrice = useUnder100Price ? longPrices.t12.price100down : longPrices.t12.price100up;
         } else if (thickness >= 14.5 && thickness <= 23) {
-            fixedPrice = useUnder100Price ? 10000 : 7000;
+            fixedPrice = useUnder100Price ? longPrices.t23.price100down : longPrices.t23.price100up;
         } else if (thickness >= 24) {
-            fixedPrice = useUnder100Price ? 15000 : 12000;
+            fixedPrice = useUnder100Price ? longPrices.t24.price100down : longPrices.t24.price100up;
         } else {
-            fixedPrice = useUnder100Price ? 10000 : 7000;
+            fixedPrice = useUnder100Price ? longPrices.t23.price100down : longPrices.t23.price100up;
         }
 
         return fixedPrice < cutCost ? fixedPrice : 0;

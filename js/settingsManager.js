@@ -17,7 +17,12 @@ class SettingsManager {
         cutMethod: 'guillotine',
         optimizationPriority: 'material',
         cutPrice: 1500,
-        enableWatermark: true
+        enableWatermark: true,
+        longSidePrices: {
+            t12: { price100up: 5000, price100down: 7000 },
+            t23: { price100up: 7000, price100down: 10000 },
+            t24: { price100up: 12000, price100down: 15000 }
+        }
     };
 
     /**
@@ -102,6 +107,22 @@ class SettingsManager {
             ? settings.enableWatermark
             : this.DEFAULT_SETTINGS.enableWatermark;
 
+        // 쭉절단 단가 테이블
+        validated.longSidePrices = {
+            t12: {
+                price100up: this.validateNumber(settings.longSidePrices?.t12?.price100up, 0, Infinity, this.DEFAULT_SETTINGS.longSidePrices.t12.price100up),
+                price100down: this.validateNumber(settings.longSidePrices?.t12?.price100down, 0, Infinity, this.DEFAULT_SETTINGS.longSidePrices.t12.price100down)
+            },
+            t23: {
+                price100up: this.validateNumber(settings.longSidePrices?.t23?.price100up, 0, Infinity, this.DEFAULT_SETTINGS.longSidePrices.t23.price100up),
+                price100down: this.validateNumber(settings.longSidePrices?.t23?.price100down, 0, Infinity, this.DEFAULT_SETTINGS.longSidePrices.t23.price100down)
+            },
+            t24: {
+                price100up: this.validateNumber(settings.longSidePrices?.t24?.price100up, 0, Infinity, this.DEFAULT_SETTINGS.longSidePrices.t24.price100up),
+                price100down: this.validateNumber(settings.longSidePrices?.t24?.price100down, 0, Infinity, this.DEFAULT_SETTINGS.longSidePrices.t24.price100down)
+            }
+        };
+
         return validated;
     }
 
@@ -146,7 +167,14 @@ class SettingsManager {
             cutDirection: document.getElementById('cutDirection'),
             cutMethod: document.getElementById('cutMethod'),
             optimizationPriority: document.getElementById('optimizationPriority'),
-            enableWatermark: document.getElementById('enableWatermark')
+            enableWatermark: document.getElementById('enableWatermark'),
+            cutPrice: document.getElementById('cutPriceInput'),
+            longPrice_12T_100up: document.getElementById('longPrice_12T_100up'),
+            longPrice_12T_100down: document.getElementById('longPrice_12T_100down'),
+            longPrice_23T_100up: document.getElementById('longPrice_23T_100up'),
+            longPrice_23T_100down: document.getElementById('longPrice_23T_100down'),
+            longPrice_24T_100up: document.getElementById('longPrice_24T_100up'),
+            longPrice_24T_100down: document.getElementById('longPrice_24T_100down')
         };
 
         if (elements.kerf) elements.kerf.value = settings.kerf;
@@ -159,6 +187,15 @@ class SettingsManager {
         if (elements.cutMethod) elements.cutMethod.value = settings.cutMethod;
         if (elements.optimizationPriority) elements.optimizationPriority.value = settings.optimizationPriority;
         if (elements.enableWatermark) elements.enableWatermark.checked = settings.enableWatermark;
+        if (elements.cutPrice) elements.cutPrice.value = settings.cutPrice;
+        
+        // 쭉절단 단가 테이블
+        if (elements.longPrice_12T_100up) elements.longPrice_12T_100up.value = settings.longSidePrices.t12.price100up;
+        if (elements.longPrice_12T_100down) elements.longPrice_12T_100down.value = settings.longSidePrices.t12.price100down;
+        if (elements.longPrice_23T_100up) elements.longPrice_23T_100up.value = settings.longSidePrices.t23.price100up;
+        if (elements.longPrice_23T_100down) elements.longPrice_23T_100down.value = settings.longSidePrices.t23.price100down;
+        if (elements.longPrice_24T_100up) elements.longPrice_24T_100up.value = settings.longSidePrices.t24.price100up;
+        if (elements.longPrice_24T_100down) elements.longPrice_24T_100down.value = settings.longSidePrices.t24.price100down;
     }
 
     /**
@@ -174,12 +211,18 @@ class SettingsManager {
             cutMethod: document.getElementById('cutMethod'),
             optimizationPriority: document.getElementById('optimizationPriority'),
             boardThickness: document.getElementById('boardThickness'),
-            enableWatermark: document.getElementById('enableWatermark')
+            enableWatermark: document.getElementById('enableWatermark'),
+            cutPrice: document.getElementById('cutPriceInput'),
+            longPrice_12T_100up: document.getElementById('longPrice_12T_100up'),
+            longPrice_12T_100down: document.getElementById('longPrice_12T_100down'),
+            longPrice_23T_100up: document.getElementById('longPrice_23T_100up'),
+            longPrice_23T_100down: document.getElementById('longPrice_23T_100down'),
+            longPrice_24T_100up: document.getElementById('longPrice_24T_100up'),
+            longPrice_24T_100down: document.getElementById('longPrice_24T_100down')
         };
 
-        // 두께에 따른 절단 단가 자동 계산
-        const thickness = elements.boardThickness ? parseFloat(elements.boardThickness.value) : 18;
-        const cutPrice = window.CostCalculator ? window.CostCalculator.getCutPriceByThickness(thickness) : 1500;
+        // 절단 단가 (입력값 우선, 없으면 기본값)
+        const cutPrice = elements.cutPrice ? parseFloat(elements.cutPrice.value) : this.DEFAULT_SETTINGS.cutPrice;
 
         return {
             kerf: elements.kerf ? parseFloat(elements.kerf.value) : this.DEFAULT_SETTINGS.kerf,
@@ -189,7 +232,21 @@ class SettingsManager {
             cutMethod: elements.cutMethod ? elements.cutMethod.value : this.DEFAULT_SETTINGS.cutMethod,
             optimizationPriority: elements.optimizationPriority ? elements.optimizationPriority.value : this.DEFAULT_SETTINGS.optimizationPriority,
             cutPrice: cutPrice,
-            enableWatermark: elements.enableWatermark ? elements.enableWatermark.checked : this.DEFAULT_SETTINGS.enableWatermark
+            enableWatermark: elements.enableWatermark ? elements.enableWatermark.checked : this.DEFAULT_SETTINGS.enableWatermark,
+            longSidePrices: {
+                t12: {
+                    price100up: elements.longPrice_12T_100up ? parseFloat(elements.longPrice_12T_100up.value) : this.DEFAULT_SETTINGS.longSidePrices.t12.price100up,
+                    price100down: elements.longPrice_12T_100down ? parseFloat(elements.longPrice_12T_100down.value) : this.DEFAULT_SETTINGS.longSidePrices.t12.price100down
+                },
+                t23: {
+                    price100up: elements.longPrice_23T_100up ? parseFloat(elements.longPrice_23T_100up.value) : this.DEFAULT_SETTINGS.longSidePrices.t23.price100up,
+                    price100down: elements.longPrice_23T_100down ? parseFloat(elements.longPrice_23T_100down.value) : this.DEFAULT_SETTINGS.longSidePrices.t23.price100down
+                },
+                t24: {
+                    price100up: elements.longPrice_24T_100up ? parseFloat(elements.longPrice_24T_100up.value) : this.DEFAULT_SETTINGS.longSidePrices.t24.price100up,
+                    price100down: elements.longPrice_24T_100down ? parseFloat(elements.longPrice_24T_100down.value) : this.DEFAULT_SETTINGS.longSidePrices.t24.price100down
+                }
+            }
         };
     }
 }
