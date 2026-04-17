@@ -35,7 +35,7 @@ class CostCalculator {
 
         // 총 재단비 = 조건 충족 판재는 원판당 고정 단가, 그 외는 기존 컷당 단가 유지
         const totalCuttingCost = bins.reduce((sum, bin) => {
-            const fixedPrice = this.getLongSidePanelFixedPrice(bin, settings);
+            const fixedPrice = this.getLongSidePanelFixedPrice(bin);
             if (fixedPrice > 0) {
                 return sum + fixedPrice;
             }
@@ -137,17 +137,26 @@ class CostCalculator {
         return 1500; // 기본값
     }
 
-    static getLongSidePanelFixedPrice(bin, settings) {
+    static getLongSidePanelFixedPrice(bin) {
         if (!bin || !Array.isArray(bin.cutDetails) || bin.cutDetails.length === 0) {
             return 0;
         }
 
-        if (bin.cutDetails.some(detail => detail && detail.fullSpan !== true)) {
+        const maxSpanEnd = Math.max(...bin.cutDetails
+            .map(detail => detail && detail.spanEnd)
+            .filter(value => Number.isFinite(value)));
+        const lengthSpan = Number.isFinite(bin.width) ? bin.width : maxSpanEnd;
+        const isLongRipCut = detail => detail
+            && detail.axis === 'Y'
+            && Math.round(detail.spanStart) === 0
+            && Math.round(detail.spanEnd) === Math.round(lengthSpan);
+
+        if (bin.cutDetails.some(detail => !isLongRipCut(detail))) {
             return 0;
         }
 
         const positions = bin.cutDetails
-            .filter(detail => detail && detail.fullSpan === true)
+            .filter(isLongRipCut)
             .map(detail => detail.pos)
             .filter(pos => Number.isFinite(pos))
             .sort((a, b) => a - b);
@@ -160,7 +169,7 @@ class CostCalculator {
             prev = pos + kerf;
         });
 
-        const qualifyingWidths = actualWidths.filter(width => Number.isFinite(width) && Math.round(width) >= 90);
+        const qualifyingWidths = actualWidths.filter(width => Number.isFinite(width) && Math.round(width) >= 50);
 
         if (qualifyingWidths.length === 0) {
             return 0;
@@ -170,20 +179,17 @@ class CostCalculator {
         const count100down = qualifyingWidths.filter(width => Math.round(width) <= 100).length;
         const useUnder100Price = count100down > count100up;
         const thickness = this.getBoardThickness();
-        const cutCost = (bin.cuttingCount || 0) * settings.cutPrice;
+        const cutCost = (bin.cuttingCount || 0) * this.getCutPriceByThickness(thickness);
         let fixedPrice = 0;
 
-        // settings에서 쭉절단 단가 가져오기
-        const longPrices = settings.longSidePrices;
-        
         if (thickness <= 12) {
-            fixedPrice = useUnder100Price ? longPrices.t12.price100down : longPrices.t12.price100up;
+            fixedPrice = useUnder100Price ? 7000 : 5000;
         } else if (thickness >= 14.5 && thickness <= 23) {
-            fixedPrice = useUnder100Price ? longPrices.t23.price100down : longPrices.t23.price100up;
+            fixedPrice = useUnder100Price ? 10000 : 7000;
         } else if (thickness >= 24) {
-            fixedPrice = useUnder100Price ? longPrices.t24.price100down : longPrices.t24.price100up;
+            fixedPrice = useUnder100Price ? 15000 : 12000;
         } else {
-            fixedPrice = useUnder100Price ? longPrices.t23.price100down : longPrices.t23.price100up;
+            fixedPrice = useUnder100Price ? 10000 : 7000;
         }
 
         return fixedPrice < cutCost ? fixedPrice : 0;
